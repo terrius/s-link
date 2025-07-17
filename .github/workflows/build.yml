@@ -32,3 +32,5 @@ jobs:
           aws-region: ap-northeast-2
       - name: Sync to S3
         run: aws s3 sync .next/ s3://s-link-build-artifacts/.next/ --delete
+
+        
