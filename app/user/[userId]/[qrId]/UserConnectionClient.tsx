@@ -109,7 +109,7 @@ export default function UserConnectionClient({ params }: { params: { userId: str
                   disabled={!message.trim()}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  메시지 보내기
+                  메시지 보내기 이렇게 보냅시다
                 </Button>
 
                 <Button onClick={handleCallRequest} variant="outline" className="w-full" disabled={isConnecting}>
@@ -131,7 +131,7 @@ export default function UserConnectionClient({ params }: { params: { userId: str
         <div className="px-6 pb-6">
           <div className="flex items-center justify-center space-x-2 text-xs text-gray-400">
             <Shield className="h-3 w-3" />
-            <span>S-Link 안전 연결 서비스</span>
+            <span>S-Link 안전 연결 서비스 이제 곧 런칭합니다</span>
           </div>
         </div>
       </Card>
