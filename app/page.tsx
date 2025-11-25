@@ -1,6 +1,7 @@
 // app/page.tsx (Server Component)
 import { prisma } from "@/lib/prisma";
 import {DashboardClient} from "./DashboardClient";
+export const dynamic = "force-dynamic";
 
 export default async function MainPage() {
   // 1. 임시로 'test@example.com' 유저의 정보를 가져옵니다. (로그인 구현 전)
