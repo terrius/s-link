@@ -22,6 +22,8 @@ interface Props {
     name: string;
     statusMessage: string | null;
     isActive: boolean;
+    createdAt: string; // ✨ 여기 추가
+    updatedAt: string; // ✨ 여기 추가
   };
   ownerData: {
     name: string;
