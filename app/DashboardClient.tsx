@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch" // Switch 컴포넌트 필요
 import {
-  Shield, QrCode, User, Menu, Home, Car, LogOut, ExternalLink, Plus
+  QrCode, User, Menu, Car, LogOut, ExternalLink, Plus
 } from "lucide-react"
 
 // DB에서 받아올 데이터 타입 정의
