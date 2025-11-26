@@ -10,8 +10,8 @@ export async function GET() {
       update: {}, // 이미 있으면 수정 안 함
       create: {
         email: "test@example.com",
-        name: "김철수",
-        password: "dummy-password", // 실제 로그인 기능 붙일 때 해시화 필요
+        name: "이태희",
+        //password: "dummy-password", // 실제 로그인 기능 붙일 때 해시화 필요
       },
     });
 
