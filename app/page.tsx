@@ -27,8 +27,8 @@ export default async function MainPage() {
   return (
     <DashboardClient 
       user={{
-        name: user.name,
-        email: user.email,
+        name: user.name || "USER",
+        email: user.email || "",
       }}
       qrCodes={user.qrCodes.map(qr => ({
         id: qr.id,
