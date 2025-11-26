@@ -17,7 +17,6 @@ const handler = NextAuth({
     async session({ session, user }) {
       // 세션에 DB의 유저 ID(uuid)를 포함시킴
       if (session.user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).id = user.id;
       }
       return session;
