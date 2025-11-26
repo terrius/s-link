@@ -1,45 +1,31 @@
-// app/api/setup/route.ts
-import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+// app/api/livekit/token/route.ts
+import { AccessToken } from "livekit-server-sdk";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // 1. 테스트 유저 생성 (이미 있으면 건너뜀)
-    const user = await prisma.user.upsert({
-      where: { email: "test@example.com" },
-      update: {}, // 이미 있으면 수정 안 함
-      create: {
-        email: "test@example.com",
-        name: "김철수",
-        password: "dummy-password", // 실제 로그인 기능 붙일 때 해시화 필요
-      },
-    });
+    const room = req.nextUrl.searchParams.get("room");
+    const username = req.nextUrl.searchParams.get("username");
 
-    // 2. 테스트 QR 코드 생성 (이미 있으면 초기화)
-    const qrCode = await prisma.qRCode.upsert({
-      where: { id: "test-qr-1" },
-      update: {
-        name: "내 차 (테스트용)",
-        statusMessage: "잠시 주차 중입니다. 급한 용무는 전화주세요.",
-        isActive: true,
-      },
-      create: {
-        id: "test-qr-1",
-        name: "내 차 (테스트용)",
-        statusMessage: "잠시 주차 중입니다. 급한 용무는 전화주세요.",
-        isActive: true,
-        ownerId: user.id, // 위에서 만든 유저와 연결
-      },
-    });
+    if (!room || !username) {
+      return NextResponse.json({ error: 'Missing query params' }, { status: 400 });
+    }
 
-    return NextResponse.json({
-      message: "✅ 데이터 세팅 완료!",
-      user: { name: user.name, email: user.email },
-      qrCode: { id: qrCode.id, name: qrCode.name, status: qrCode.statusMessage }
-    });
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
+    if (!apiKey || !apiSecret || !wsUrl) {
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    }
+
+    const at = new AccessToken(apiKey, apiSecret, { identity: username });
+    at.addGrant({ room, roomJoin: true, canPublish: true, canSubscribe: true });
+
+    const token = await at.toJwt();
+
+    return NextResponse.json({ token });
   } catch (error) {
-    console.error("데이터 생성 실패:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
