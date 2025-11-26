@@ -35,7 +35,7 @@ export default async function Page({
       }} 
       ownerData={{
         name: qrData.owner.name || "익명 사용자",
-        email: qrData.owner.email,
+        email: qrData.owner.email || "",
       }}
     />
   );
