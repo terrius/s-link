@@ -9,23 +9,98 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// [수정됨] NextAuth 표준 User 모델
+// 1. 사용자 (User) - 권한 및 프로필 정보 확장
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
-  image         String?   // 프로필 사진 URL
+  image         String?
+  
+  // [추가] 기획서 p.29 권한 구분 (ADMIN, MANAGER, USER)
+  role          Role      @default(USER) 
+  
+  // [추가] 기획서 p.16, 47 프로필 정보 (별명, 소개글)
+  nickname      String?   
+  bio           String?   @db.VarChar(255)
+
   accounts      Account[]
   sessions      Session[]
   
-  // S-Link 비즈니스 로직
-  qrCodes       QRCode[]  // 기존 관계 유지
+  // 유저가 소유한 QR 코드들
+  qrCodes       QRCode[]
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
-// [추가] 소셜 로그인 계정 정보 (Google 등)
+// [신규] 사용자 권한 Enum
+enum Role {
+  USER      // 일반 사용자 (입주민, 개인)
+  MANAGER   // 업체 회원, 설치 기사
+  ADMIN     // 전체 관리자
+}
+
+// 2. QR 코드 (QueTem) - 소유자 연결 방식 변경
+model QRCode {
+  id            String   @id @default(cuid())
+  name          String   // 사용자가 지정한 이름 (예: 내 차, 현관)
+  statusMessage String?  // 상태 메시지 (예: 잠시 주차 중)
+  isActive      Boolean  @default(true)
+  
+  // [변경] QR은 관리자가 미리 생성하므로 초기엔 owner가 없을 수 있음 (Optional)
+  ownerId       String?
+  owner         User?    @relation(fields: [ownerId], references: [id])
+  
+  // [추가] 이력 관리를 위한 관계 설정
+  messages      MessageLog[]
+  calls         CallLog[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+// [신규] 메시지 이력 (기획서 p.21, 56)
+model MessageLog {
+  id        String   @id @default(cuid())
+  
+  // 방문자가 남긴 정보
+  senderName String? // 작성자 이름
+  content    String  @db.Text // 메시지 내용
+  
+  qrCodeId  String
+  qrCode    QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  isRead    Boolean  @default(false) // 읽음 여부
+  createdAt DateTime @default(now())
+
+  @@index([qrCodeId])
+}
+
+// [신규] 통화 이력 (기획서 p.23, 57)
+model CallLog {
+  id        String   @id @default(cuid())
+  
+  qrCodeId  String
+  qrCode    QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  status    CallStatus @default(MISSED) // 통화 상태
+  duration  Int?       // 통화 시간 (초 단위)
+  
+  createdAt DateTime   @default(now())
+
+  @@index([qrCodeId])
+}
+
+enum CallStatus {
+  CONNECTED // 통화 연결됨
+  MISSED    // 부재중
+  REJECTED  // 거절됨
+}
+
+// --- NextAuth 필수 모델 (변경 없음) ---
 model Account {
   id                 String  @id @default(cuid())
   userId             String
@@ -45,7 +120,6 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-// [추가] 로그인 세션 정보
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -54,35 +128,10 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// [추가] 이메일 인증용 (혹시 나중에 쓸 수 있음)
 model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-// 2. QR 코드 (QueTem) - 사물/공간과 연결되는 핵심 엔티티
-model QRCode {
-  id            String   @id @default(cuid()) // QR URL에 들어갈 고유 ID
-  name          String   // 예: "내 차", "우리집 현관"
-  statusMessage String?  // 예: "잠시 주차 중입니다", "휴가 중"
-  isActive      Boolean  @default(true)
-  
-  ownerId       String
-  owner         User     @relation(fields: [ownerId], references: [id])
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([ownerId])
-}
-
-// 3. 통화/연결 로그 (선택 사항 - 과금 및 통계를 위해 필요)
-model CallLog {
-  id        String   @id @default(cuid())
-  qrCodeId  String
-  startedAt DateTime @default(now())
-  duration  Int?     // 통화 시간 (초)
 }

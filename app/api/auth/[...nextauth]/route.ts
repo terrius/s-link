@@ -18,6 +18,7 @@ const handler = NextAuth({
       // 세션에 DB의 유저 ID(uuid)를 포함시킴
       if (session.user) {
         session.user.id = user.id;
+        (session.user as any).role = (user as any).role;
       }
       return session;
     },

@@ -1,45 +1,69 @@
 // app/api/setup/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { Role } from "@prisma/client"; // Enum 가져오기
 
 export async function GET() {
   try {
-    // 1. 테스트 유저 생성 (이미 있으면 건너뜀)
+    // 1. 일반 사용자 (USER) 생성
     const user = await prisma.user.upsert({
-      where: { email: "test@example.com" },
-      update: {}, // 이미 있으면 수정 안 함
+      where: { email: "user@example.com" },
+      update: {},
       create: {
-        email: "test@example.com",
-        name: "이태희",
-        //password: "dummy-password", // 실제 로그인 기능 붙일 때 해시화 필요
+        email: "user@example.com",
+        name: "김철수",
+        nickname: "철수",
+        role: Role.USER,
       },
     });
 
-    // 2. 테스트 QR 코드 생성 (이미 있으면 초기화)
+    // 2. 매니저 (MANAGER - 설치 기사 등) 생성
+    const manager = await prisma.user.upsert({
+      where: { email: "manager@example.com" },
+      update: {},
+      create: {
+        email: "manager@example.com",
+        name: "테리우스",
+        nickname: "큐알코드 관리자",
+        role: Role.MANAGER,
+      },
+    });
+
+    // 3. 관리자 (ADMIN) 생성
+    const admin = await prisma.user.upsert({
+      where: { email: "admin@example.com" },
+      update: {},
+      create: {
+        email: "admin@example.com",
+        name: "관리자",
+        nickname: "Super Admin",
+        role: Role.ADMIN,
+      },
+    });
+
+    // 4. 테스트 QR 생성 (일반 사용자용)
     const qrCode = await prisma.qRCode.upsert({
       where: { id: "test-qr-1" },
-      update: {
-        name: "내 차 (테스트용)",
-        statusMessage: "차를 좀 빼는게 어떠시겠어요? 짜증 지대로거든요?.",
-        isActive: true,
-      },
+      update: {},
       create: {
         id: "test-qr-1",
         name: "내 차 (테스트용)",
-        statusMessage: "내차 내가 댄다는데 무슨 상관있으신가요??.",
+        statusMessage: "잠시 주차 중입니다.",
         isActive: true,
-        ownerId: user.id, // 위에서 만든 유저와 연결
+        ownerId: user.id,
       },
     });
 
     return NextResponse.json({
-      message: "✅ 데이터 세팅 완료!",
-      user: { name: user.name, email: user.email },
-      qrCode: { id: qrCode.id, name: qrCode.name, status: qrCode.statusMessage }
+      message: "✅ 역할별 테스트 데이터 세팅 완료!",
+      accounts: [
+        { email: user.email, role: user.role },
+        { email: manager.email, role: manager.role },
+        { email: admin.email, role: admin.role },
+      ]
     });
 
   } catch (error) {
-    console.error("데이터 생성 실패:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
