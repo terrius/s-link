@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 
 // Icons
 import {
-  QrCode, User, Menu, Car, LogOut, ExternalLink, Plus, Edit, ShoppingBag
+  QrCode, User, Menu, Car, LogOut, ExternalLink, Edit, ShoppingBag
 } from "lucide-react"
 
 // DB 데이터 타입 정의
@@ -50,7 +50,7 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
       
       if (!res.ok) throw new Error("Failed");
       router.refresh(); // 서버 데이터 동기화
-    } catch (e) {
+    } catch (_e) {
       alert("상태 변경에 실패했습니다.");
       // 실패 시 롤백 로직(생략 가능)
     }
@@ -74,7 +74,7 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
         );
         router.refresh();
       }
-    } catch (e) {
+    } catch (_e) {
       alert("수정 실패");
     }
   };

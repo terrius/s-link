@@ -18,6 +18,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = user.id;
         // DB에 있는 role 정보를 세션에 담음 (타입 정의가 되어 있다면 as any 없이 가능)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session.user as any).role = (user as any).role;
       }
       return session;
