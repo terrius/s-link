@@ -1,41 +1,47 @@
-// app/page.tsx (Server Component)
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation"; // 👈 이 줄이 꼭 있어야 합니다!
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-import {DashboardClient} from "./DashboardClient";
+import { DashboardClient } from "./DashboardClient";
+
+// 동적 렌더링 강제 (DB 실시간 반영을 위해)
 export const dynamic = "force-dynamic";
 
 export default async function MainPage() {
-  // 1. 임시로 'test@example.com' 유저의 정보를 가져옵니다. (로그인 구현 전)
+  // 1. 세션 확인 (로그인 여부)
+  const session = await getServerSession(authOptions);
+
+  // 로그인이 안 되어 있으면 로그인 페이지로 튕겨냄
+  if (!session) {
+    redirect("/login");
+  }
+
+  // 2. 유저 정보 및 QR 목록 조회
   const user = await prisma.user.findUnique({
-    where: { email: "test@example.com" },
+    where: { email: session.user?.email! },
     include: {
-      qrCodes: true, // 유저가 가진 QR 코드들도 같이 가져옴
+      qrCodes: true,
     },
   });
 
-  // 유저가 없으면 (api/setup 안 했을 경우) 빈 껍데기만 보여줌
-  if (!user) {
-    return (
-      <div className="p-8 text-center">
-        <h1 className="text-xl font-bold">데이터가 없습니다.</h1>
-        <p className="mb-4">먼저 /api/setup 페이지를 실행해주세요.</p>
-        <a href="/api/setup" className="text-blue-500 underline">데이터 세팅하러 가기</a>
-      </div>
-    );
+  // 3. 온보딩 체크 (유저 정보가 없거나 닉네임 설정을 안 했으면 온보딩으로 이동)
+  if (!user || !user.nickname) {
+    redirect("/onboarding");
   }
 
-  // 2. 클라이언트 컴포넌트에 데이터 전달
+  // 4. 클라이언트 컴포넌트에 데이터 전달 및 렌더링
   return (
-    <DashboardClient 
+    <DashboardClient
       user={{
-        name: user.name || "USER",
+        name: user.nickname || user.name, // 닉네임 우선 표시
         email: user.email || "",
       }}
-      qrCodes={user.qrCodes.map(qr => ({
+      qrCodes={user.qrCodes.map((qr) => ({
         id: qr.id,
         name: qr.name,
         statusMessage: qr.statusMessage,
         isActive: qr.isActive,
-        scans: 0, // 나중에 CallLog와 연동 필요
+        scans: 0, // 추후 CallLog 카운트로 대체 가능
       }))}
     />
   );
