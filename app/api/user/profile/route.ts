@@ -1,7 +1,7 @@
 // app/api/user/profile/route.ts
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth"; // 👈 경로 변경!
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest) {
@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, user: updatedUser });
-  } catch (error) {
+  } catch  {
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
   }
 }

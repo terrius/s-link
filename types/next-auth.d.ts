@@ -1,15 +1,18 @@
 // types/next-auth.d.ts
-import { DefaultSession } from "next-auth"
+import { DefaultSession, DefaultUser } from "next-auth"
+import { Role } from "@prisma/client"
 
-// next-auth 모듈의 타입을 확장합니다.
 declare module "next-auth" {
-  /**
-   * Session 객체에 id 속성을 추가합니다.
-   * 기존 DefaultSession["user"] (name, email, image)를 상속받으면서 id를 더합니다.
-   */
+  // 1. 세션(Session) 객체 확장
   interface Session {
     user: {
       id: string
+      role: Role
     } & DefaultSession["user"]
+  }
+
+  // 2. 유저(User) 객체 확장 (이게 빠져서 에러가 났을 수 있습니다)
+  interface User extends DefaultUser {
+    role: Role
   }
 }

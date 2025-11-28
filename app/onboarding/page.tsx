@@ -30,7 +30,7 @@ export default function OnboardingPage() {
       } else {
         alert("닉네임 설정에 실패했습니다.");
       }
-    } catch (error) {
+    } catch {
       alert("오류가 발생했습니다.");
     } finally {
       setIsLoading(false);

@@ -1,7 +1,7 @@
 // app/api/user/profile/route.ts
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth"; // ✅ 올바른 경로 (새로 만든 파일)
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest) {

@@ -36,8 +36,8 @@ export default async function PublicQRPage({
         updatedAt: qrData.updatedAt.toISOString(),
       }}
       ownerData={{
-        name: qrData.owner.name || "익명 사용자",
-        email: qrData.owner.email || "",
+        name: qrData.owner?.name || "익명 사용자",
+        email: qrData.owner?.email || "",
       }}
     />
   );

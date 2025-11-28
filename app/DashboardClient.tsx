@@ -50,7 +50,7 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
       
       if (!res.ok) throw new Error("Failed");
       router.refresh(); // 서버 데이터 동기화
-    } catch (_e) {
+    } catch  {
       alert("상태 변경에 실패했습니다.");
       // 실패 시 롤백 로직(생략 가능)
     }
@@ -74,7 +74,7 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
         );
         router.refresh();
       }
-    } catch (_e) {
+    } catch  {
       alert("수정 실패");
     }
   };

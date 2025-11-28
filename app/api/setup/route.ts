@@ -42,7 +42,7 @@ export async function GET() {
     });
 
     // 4. 테스트 QR 생성 (일반 사용자용)
-    const _qrCode = await prisma.qRCode.upsert({
+    await prisma.qRCode.upsert({
       where: { id: "test-qr-1" },
       update: {},
       create: {
