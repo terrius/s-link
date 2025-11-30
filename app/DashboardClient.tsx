@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 
 // Icons
 import {
-  QrCode, User, Menu, Car, LogOut, ExternalLink, Edit, ShoppingBag
+  QrCode, User, Menu, Car, LogOut, ExternalLink, Edit, ShoppingBag, Plus
 } from "lucide-react"
 
 // DB 데이터 타입 정의
@@ -131,10 +131,19 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
                 <CardDescription>보유하신 S-Link QR 코드를 관리합니다.</CardDescription>
               </div>
               {/* '추가' 버튼 대신 '구매하기' 등으로 유도하는 것이 비즈니스 모델에 적합 */}
-              <Button size="sm" variant="outline">
-                <ShoppingBag className="h-4 w-4 mr-2"/>
-                스토어
-              </Button>
+              <div className="flex gap-2">
+                <Link href="/qr/register">
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Plus className="h-4 w-4 mr-1"/>
+                    등록
+                  </Button>
+                </Link>
+                {/* 스토어 버튼은 유지 */}
+                <Button size="sm" variant="outline">
+                  <ShoppingBag className="h-4 w-4 mr-2"/>
+                  스토어
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>

@@ -1,40 +1,44 @@
 // app/user/[userId]/[qrId]/page.tsx
-import { prisma } from "@/lib/prisma"; // 우리가 만든 prisma 클라이언트
+import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import UserConnectionClient from "./UserConnectionClient";
+
+export const dynamic = "force-dynamic";
 
 export default async function Page({
   params,
 }: {
   params: Promise<{ userId: string; qrId: string }>;
 }) {
-  const resolvedParams = await params;
-  const { qrId } = resolvedParams;
+  const { userId, qrId } = await params;
 
-  // 1. DB에서 QR 정보 + 소유자 정보 조회
+  // 1. QR 정보 조회 (URL의 userId와 실제 소유자가 맞는지 검증)
   const qrData = await prisma.qRCode.findUnique({
-    where: { id: qrId },
-    include: {
-      owner: true, // 소유자(User) 정보까지 같이 가져오기 (Join)
+    where: { 
+      id: qrId,
+      ownerId: userId // 보안: URL상의 주인과 실제 주인이 일치해야 함
     },
+    include: { owner: true },
   });
 
-  // 2. 데이터가 없으면 404 페이지로 이동
+  // 2. 데이터가 없으면 404
   if (!qrData) {
     return notFound();
   }
 
-  // 3. 클라이언트 컴포넌트에 데이터 전달
-  // (Date 객체는 직렬화 문제로 문자열로 변환해서 넘기는 게 안전합니다)
+  // 3. 연결 화면 표시
   return (
-    <UserConnectionClient 
+    <UserConnectionClient
       qrData={{
-        ...qrData,
+        id: qrData.id,
+        name: qrData.name,
+        statusMessage: qrData.statusMessage,
+        isActive: qrData.isActive,
         createdAt: qrData.createdAt.toISOString(),
         updatedAt: qrData.updatedAt.toISOString(),
-      }} 
+      }}
       ownerData={{
-        name: qrData.owner?.name || "익명 사용자",
+        name: qrData.owner?.nickname || qrData.owner?.name || "익명 사용자",
         email: qrData.owner?.email || "",
       }}
     />
