@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { QrCode, ArrowLeft, CheckCircle, Copy } from "lucide-react";
+import { QrCode, ArrowLeft, CheckCircle } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react"; // QR 코드 렌더링용
 
 export default function QRRegisterPage() {
