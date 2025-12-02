@@ -82,22 +82,22 @@ model MessageLog {
 // [신규] 통화 이력 (기획서 p.23, 57)
 model CallLog {
   id        String   @id @default(cuid())
-  
   qrCodeId  String
   qrCode    QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
   
-  status    CallStatus @default(MISSED) // 통화 상태
-  duration  Int?       // 통화 시간 (초 단위)
+  status    CallStatus @default(WAITING) // WAITING 상태 추가
+  roomName  String?    // [추가] LiveKit 방 이름 저장용
+  duration  Int?
   
   createdAt DateTime   @default(now())
-
   @@index([qrCodeId])
 }
 
 enum CallStatus {
-  CONNECTED // 통화 연결됨
-  MISSED    // 부재중
-  REJECTED  // 거절됨
+  WAITING   // [추가] 신호 가는 중
+  CONNECTED
+  MISSED
+  REJECTED
 }
 
 // --- NextAuth 필수 모델 (변경 없음) ---

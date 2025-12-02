@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { signOut } from "next-auth/react" // 👈 [추가] NextAuth 로그아웃 함수
 
 // UI Components
 import { Button } from "@/components/ui/button"
@@ -107,10 +108,17 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
                   <SheetDescription>{user.email}</SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-4">
-                  <div className="flex items-center space-x-3 p-3 text-red-600 cursor-pointer">
+                  {/* div를 button으로 변경하여 클릭 동작 확실하게 보장 */}
+                  <button
+                    className="w-full flex items-center space-x-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
+                    onClick={() => {
+                      console.log("로그아웃 시도..."); // 클릭 확인용 로그
+                      signOut({ callbackUrl: "/login" });
+                    }}
+                  >
                     <LogOut className="h-5 w-5" />
                     <span className="font-medium">로그아웃</span>
-                  </div>
+                  </button>
                 </div>
               </SheetContent>
             </Sheet>
