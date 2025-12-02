@@ -1,4 +1,3 @@
-// app/qr/register/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -8,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { QrCode, ArrowLeft, CheckCircle } from "lucide-react";
-import { QRCodeCanvas } from "qrcode.react"; // QR 코드 렌더링용
+import { QrCode, ArrowLeft, CheckCircle } from "lucide-react"; 
+import { QRCodeCanvas } from "qrcode.react"; 
 
 export default function QRRegisterPage() {
   const router = useRouter();
@@ -17,13 +16,13 @@ export default function QRRegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   
-  // 생성 완료된 데이터 (성공 시 채워짐)
+  // 생성 완료된 데이터
   const [createdQR, setCreatedQR] = useState<{ id: string, url: string } | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrorMsg(""); // 입력 시 에러 초기화
+    setErrorMsg("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,10 +42,8 @@ export default function QRRegisterPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // 성공 시 결과 화면 보여주기 위해 상태 업데이트
         setCreatedQR({ id: data.qrCode.id, url: data.url });
       } else {
-        // 중복 등 에러 처리
         if (data.error === "DUPLICATE_NAME") {
           setErrorMsg("⚠️ 이미 사용 중인 이름입니다. 다른 이름을 입력해주세요.");
         } else {
@@ -85,7 +82,10 @@ export default function QRRegisterPage() {
             {/* 입력 정보 확인 */}
             <div className="w-full bg-slate-50 p-4 rounded-lg text-center space-y-1">
               <p className="font-bold text-lg text-slate-800">{formData.name}</p>
-              <p className="text-sm text-slate-600">"{formData.statusMessage || "메시지 없음"}"</p>
+              {/* 👇 [수정됨] 여기가 에러 원인! 따옴표(")를 &quot;로 변경했습니다. */}
+              <p className="text-sm text-slate-600">
+                &quot;{formData.statusMessage || "메시지 없음"}&quot;
+              </p>
             </div>
 
             {/* 하단 버튼 */}
@@ -94,7 +94,7 @@ export default function QRRegisterPage() {
                 variant="outline" 
                 className="flex-1"
                 onClick={() => {
-                  setCreatedQR(null); // 다시 입력 화면으로
+                  setCreatedQR(null);
                   setFormData({ name: "", statusMessage: "" });
                 }}
               >
@@ -143,7 +143,6 @@ export default function QRRegisterPage() {
                 required
                 className={errorMsg ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
-              {/* 중복 에러 메시지 출력 */}
               {errorMsg && (
                 <p className="text-xs text-red-500 font-medium animate-pulse">
                   {errorMsg}
