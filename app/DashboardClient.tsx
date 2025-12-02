@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signOut } from "next-auth/react" // 👈 [추가] NextAuth 로그아웃 함수
+import { signOut } from "next-auth/react"
+import { QRCodeCanvas } from "qrcode.react" // QR 라이브러리 추가
 
 // UI Components
 import { Button } from "@/components/ui/button"
@@ -13,12 +14,13 @@ import { Switch } from "@/components/ui/switch"
 
 // Icons
 import {
-  QrCode, User, Menu, Car, LogOut, ExternalLink, Edit, ShoppingBag, Plus
+  QrCode, User, Menu, Car, LogOut, ExternalLink, Plus, Edit, ShoppingBag, Phone
 } from "lucide-react"
 
 // DB 데이터 타입 정의
 interface DashboardProps {
   user: {
+    id: string;
     name: string | null;
     email: string;
   };
@@ -34,10 +36,58 @@ interface DashboardProps {
 export function DashboardClient({ user, qrCodes }: DashboardProps) {
   const router = useRouter();
   const [localQrCodes, setLocalQrCodes] = useState(qrCodes);
+  const [origin, setOrigin] = useState(""); // 도메인 주소 저장용
+  
+  // 전화 수신 상태 관리
+  const [incomingCall, setIncomingCall] = useState<{ id: string, roomName: string, qrName: string } | null>(null);
 
-  // 1. QR 활성/비활성 토글 (API 연동)
+  // 초기 로드 시 현재 도메인(origin) 가져오기
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  // 1. [기능] 수신 대기 (Polling)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/call/check");
+        const data = await res.json();
+        
+        if (data.incomingCall) {
+          setIncomingCall(data.incomingCall);
+        } else {
+          setIncomingCall(null);
+        }
+      } catch {
+        // polling error ignore
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 2. [기능] 전화 응답 처리
+  const handleRespond = async (action: "accept" | "reject") => {
+    if (!incomingCall) return;
+
+    try {
+      await fetch("/api/call/response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId: incomingCall.id, action }),
+      });
+
+      if (action === "accept") {
+        router.push(`/call/${incomingCall.roomName}`);
+      }
+      setIncomingCall(null);
+    } catch {
+      alert("오류가 발생했습니다.");
+    }
+  };
+
+  // 3. [기능] QR 활성/비활성 토글
   const toggleQRStatus = async (id: string, currentStatus: boolean) => {
-    // 낙관적 업데이트 (UI 먼저 반영)
     setLocalQrCodes((prev) =>
       prev.map((qr) => (qr.id === id ? { ...qr, isActive: !currentStatus } : qr))
     );
@@ -48,16 +98,14 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !currentStatus }),
       });
-      
       if (!res.ok) throw new Error("Failed");
-      router.refresh(); // 서버 데이터 동기화
-    } catch  {
+      router.refresh();
+    } catch {
       alert("상태 변경에 실패했습니다.");
-      // 실패 시 롤백 로직(생략 가능)
     }
   };
 
-  // 2. 상태 메시지 수정
+  // 4. [기능] 상태 메시지 수정
   const editStatusMessage = async (id: string, currentMsg: string | null) => {
     const newMsg = window.prompt("새로운 상태 메시지를 입력하세요:", currentMsg || "");
     if (newMsg === null) return;
@@ -75,14 +123,42 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
         );
         router.refresh();
       }
-    } catch  {
+    } catch {
       alert("수정 실패");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* --- Header --- */}
+    <div className="min-h-screen bg-gray-50 relative">
+      
+      {/* 전화 수신 모달 */}
+      {incomingCall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in">
+          <Card className="w-full max-w-sm p-6 bg-white shadow-2xl border-0 ring-4 ring-blue-500/30">
+            <div className="flex flex-col items-center space-y-6 text-center">
+              <div className="relative">
+                <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
+                <div className="relative w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white">
+                  <Phone className="h-10 w-10 animate-bounce" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900">전화 요청!</h3>
+                <p className="text-slate-500 mt-2">
+                  <span className="font-semibold text-blue-600">[{incomingCall.qrName}]</span>에서<br/>
+                  연결을 요청하고 있습니다.
+                </p>
+              </div>
+              <div className="flex gap-4 w-full pt-4">
+                <Button variant="outline" className="flex-1 h-14 text-lg border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300" onClick={() => handleRespond("reject")}>거절</Button>
+                <Button className="flex-1 h-14 text-lg bg-green-600 hover:bg-green-700 shadow-lg shadow-green-900/20" onClick={() => handleRespond("accept")}>받기</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -108,13 +184,9 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
                   <SheetDescription>{user.email}</SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-4">
-                  {/* div를 button으로 변경하여 클릭 동작 확실하게 보장 */}
                   <button
-                    className="w-full flex items-center space-x-3 p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-left"
-                    onClick={() => {
-                      console.log("로그아웃 시도..."); // 클릭 확인용 로그
-                      signOut({ callbackUrl: "/login" });
-                    }}
+                    className="w-full flex items-center space-x-3 p-3 text-red-600 cursor-pointer hover:bg-red-50 rounded-lg transition-colors text-left"
+                    onClick={() => signOut({ callbackUrl: "/login" })}
                   >
                     <LogOut className="h-5 w-5" />
                     <span className="font-medium">로그아웃</span>
@@ -126,7 +198,7 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
         </div>
       </header>
 
-      {/* --- Main Content --- */}
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
@@ -138,7 +210,7 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
                 </CardTitle>
                 <CardDescription>보유하신 S-Link QR 코드를 관리합니다.</CardDescription>
               </div>
-              {/* '추가' 버튼 대신 '구매하기' 등으로 유도하는 것이 비즈니스 모델에 적합 */}
+              
               <div className="flex gap-2">
                 <Link href="/qr/register">
                   <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -146,7 +218,6 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
                     등록
                   </Button>
                 </Link>
-                {/* 스토어 버튼은 유지 */}
                 <Button size="sm" variant="outline">
                   <ShoppingBag className="h-4 w-4 mr-2"/>
                   스토어
@@ -159,17 +230,16 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
               {localQrCodes.map((qr) => (
                 <div key={qr.id} className="border rounded-lg p-4 bg-white shadow-sm transition-all hover:shadow-md">
                   
-                  {/* 카드 내용 */}
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-4">
-                      {/* QR 이미지 대신 아이콘 표시 (보안상 이미지 노출 방지) */}
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${qr.isActive ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                    {/* 왼쪽 정보 영역 */}
+                    <div className="flex items-center space-x-4 overflow-hidden">
+                      <div className={`w-14 h-14 min-w-14 rounded-xl flex items-center justify-center ${qr.isActive ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
                         <Car className="h-8 w-8" />
                       </div>
                       
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-lg text-gray-800">{qr.name}</h3>
+                          <h3 className="font-bold text-lg text-gray-800 truncate">{qr.name}</h3>
                           <button 
                             onClick={() => editStatusMessage(qr.id, qr.statusMessage)}
                             className="text-gray-400 hover:text-blue-600 transition-colors p-1"
@@ -178,25 +248,38 @@ export function DashboardClient({ user, qrCodes }: DashboardProps) {
                             <Edit className="h-4 w-4" />
                           </button>
                         </div>
-                        <p className="text-sm text-gray-500 truncate max-w-[200px] sm:max-w-[300px]">
+                        <p className="text-sm text-gray-500 truncate max-w-[150px] sm:max-w-[300px]">
                           {qr.statusMessage || "설정된 메시지가 없습니다."}
                         </p>
                       </div>
                     </div>
 
-                    {/* 활성/비활성 스위치 */}
-                    <div className="flex flex-col items-center gap-1">
-                        <Switch 
-                        checked={qr.isActive} 
-                        onCheckedChange={() => toggleQRStatus(qr.id, qr.isActive)} 
-                        />
-                        <span className="text-[10px] text-gray-400">{qr.isActive ? "ON" : "OFF"}</span>
+                    {/* 오른쪽 영역 (QR + 스위치) */}
+                    <div className="flex items-center gap-4">
+                      {/* [추가됨] QR 코드 썸네일 표시 */}
+                      {origin && (
+                        <div className="hidden sm:block p-1 bg-white border border-slate-200 rounded shadow-sm">
+                          <QRCodeCanvas 
+                            value={`${origin}/user/${user.id}/${qr.id}`}
+                            size={48}
+                            level="L"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex flex-col items-center gap-1">
+                          <Switch 
+                            checked={qr.isActive} 
+                            onCheckedChange={() => toggleQRStatus(qr.id, qr.isActive)} 
+                          />
+                          <span className="text-[10px] text-gray-400">{qr.isActive ? "ON" : "OFF"}</span>
+                      </div>
                     </div>
                   </div>
                   
                   {/* 하단 액션 버튼 */}
                   <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
-                    <Link href={`/qr/${qr.id}`} target="_blank">
+                    <Link href={`/user/${user.id}/${qr.id}`} target="_blank">
                       <Button variant="ghost" size="sm" className="text-blue-600 hover:bg-blue-50">
                         <ExternalLink className="h-4 w-4 mr-2" />
                         화면 미리보기

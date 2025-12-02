@@ -36,6 +36,7 @@ export default async function MainPage() {
   return (
     <DashboardClient
       user={{
+        id: user.id, // 👈 [추가] user.id를 꼭 넘겨줘야 합니다!
         name: user.nickname || user.name,
         email: user.email || "",
       }}
