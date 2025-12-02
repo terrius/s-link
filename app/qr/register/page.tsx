@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { QrCode, ArrowLeft, CheckCircle } from "lucide-react"; // Copy 삭제됨
+import { QrCode, ArrowLeft, CheckCircle } from "lucide-react"; 
 import { QRCodeCanvas } from "qrcode.react"; 
 
 export default function QRRegisterPage() {
@@ -82,7 +82,7 @@ export default function QRRegisterPage() {
             {/* 입력 정보 확인 */}
             <div className="w-full bg-slate-50 p-4 rounded-lg text-center space-y-1">
               <p className="font-bold text-lg text-slate-800">{formData.name}</p>
-              {/* 따옴표 에러 수정: &quot; 사용 */}
+              {/* 👇 [수정됨] 여기가 에러 원인! 따옴표(")를 &quot;로 변경했습니다. */}
               <p className="text-sm text-slate-600">
                 &quot;{formData.statusMessage || "메시지 없음"}&quot;
               </p>
