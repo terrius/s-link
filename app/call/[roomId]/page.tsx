@@ -5,11 +5,10 @@ import {
   LiveKitRoom, 
   RoomAudioRenderer, 
   ControlBar, 
-  useTracks,
+  useParticipants,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-// [수정 1] AudioPresets 추가 Import
-import { Track, AudioPresets } from "livekit-client"; 
+import { Track, AudioPresets } from "livekit-client"; // AudioPresets 필수!
 import { Button } from "@/components/ui/button";
 import { PhoneOff, User, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -48,25 +47,23 @@ export default function OwnerCallPage({ params }: { params: Promise<{ roomId: st
         data-lk-theme="default"
         options={{
           publishDefaults: {
-            // [수정 2] 문자열 'speech' 대신 AudioPresets 상수를 사용
-            audioPreset: AudioPresets.speech, 
+            audioPreset: AudioPresets.speech, // 여기 에러 수정됨
             dtx: true,
           },
           adaptiveStream: true,
         }}
-        onConnected={() => console.log(">> LiveKit 서버에 연결 성공!")}
-        onDisconnected={() => {
-            alert("통화가 종료되었습니다.");
-            if (window.opener) window.close();
-            else router.push("/");
+        // [수정 1] 상대방이 나가면 바로 메인으로 이동
+        onParticipantDisconnected={() => {
+            alert("상대방이 통화를 종료했습니다.");
+            router.push("/");
         }}
-        onError={(error) => {
-          console.error(">> LiveKit 에러 발생:", error);
+        // [수정 2] 내가 연결 끊어도 메인으로 이동
+        onDisconnected={() => {
+            router.push("/");
         }}
         className="flex flex-col items-center justify-between w-full h-full max-w-md p-6"
       >
         <RoomAudioRenderer volume={1.0} />
-        
         <ConnectionStatusDisplay />
 
         <div className="w-full pb-10 space-y-6">
@@ -91,22 +88,20 @@ export default function OwnerCallPage({ params }: { params: Promise<{ roomId: st
 }
 
 function ConnectionStatusDisplay() {
-  const audioTracks = useTracks([Track.Source.Microphone]);
-  
-  // 나(Local)를 제외한 트랙이 있는지 확인 (즉, 방문자가 들어왔는지)
-  const isVisitorConnected = audioTracks.some(track => !track.participant.isLocal); 
+  const participants = useParticipants();
+  const isVisitorConnected = participants.length > 1;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-      <div className={`w-32 h-32 rounded-full flex items-center justify-center border-4 shadow-2xl ${isVisitorConnected ? 'bg-green-900 border-green-500 animate-pulse' : 'bg-slate-800 border-slate-600'}`}>
+      <div className={`w-32 h-32 rounded-full flex items-center justify-center border-4 shadow-2xl transition-all duration-500 ${isVisitorConnected ? 'bg-green-900 border-green-500 animate-pulse' : 'bg-slate-800 border-slate-600'}`}>
         <User className={`h-16 w-16 ${isVisitorConnected ? 'text-green-400' : 'text-slate-400'}`} />
       </div>
-      <div className="text-center">
+      <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">
           {isVisitorConnected ? "방문자와 통화 중" : "방문자 대기 중..."}
         </h2>
         <p className={isVisitorConnected ? "text-green-400" : "text-slate-500"}>
-          {isVisitorConnected ? "오디오 연결됨" : "상대방 접속을 기다리는 중"}
+          {isVisitorConnected ? "상대방이 접속했습니다" : "상대방 접속을 기다리는 중"}
         </p>
       </div>
     </div>
