@@ -8,30 +8,41 @@ import {
   useParticipants,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { Track, AudioPresets } from "livekit-client"; // AudioPresets 필수!
+import { AudioPresets, Participant } from "livekit-client"; 
 import { Button } from "@/components/ui/button";
-import { PhoneOff, User, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { PhoneOff, User, Loader2, Mic, Volume2 } from "lucide-react"; // 아이콘 추가
+import { useRouter, useSearchParams } from "next/navigation"; // useSearchParams 추가
 
-export default function OwnerCallPage({ params }: { params: Promise<{ roomId: string }> }) {
+export default function CallPage({ params }: { params: Promise<{ roomId: string }> }) {
   const [token, setToken] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // URL에 ?mode=visitor 가 있으면 방문자로 인식
+  const isVisitor = searchParams.get("mode") === "visitor";
 
   useEffect(() => {
     params.then((p) => {
-        const username = `owner-host-${Math.floor(Math.random() * 10000)}`; 
+        // [핵심] 역할에 따라 이름 규칙을 다르게 적용
+        // 주인이면 'owner-host', 방문자면 'visitor-123' 
+        const username = isVisitor 
+            ? `visitor-${Math.floor(Math.random() * 1000)}` 
+            : `owner-host`; // 주인은 고정된 이름 사용 권장 (혹은 중복 방지 처리)
+
+        console.log(`>> 접속 시도 | Room: ${p.roomId} | Role: ${isVisitor ? '방문자' : '주인'} | User: ${username}`);
+
         fetch(`/api/livekit/token?room=${p.roomId}&username=${username}`)
           .then((res) => res.json())
           .then((data) => setToken(data.token))
           .catch(e => console.error("토큰 발급 실패:", e));
     });
-  }, [params]);
+  }, [params, isVisitor]);
 
   if (!token) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
         <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-        <span className="ml-3">연결 준비 중...</span>
+        <span className="ml-3">{isVisitor ? "주인을 호출하는 중..." : "연결 준비 중..."}</span>
       </div>
     );
   }
@@ -47,24 +58,27 @@ export default function OwnerCallPage({ params }: { params: Promise<{ roomId: st
         data-lk-theme="default"
         options={{
           publishDefaults: {
-            audioPreset: AudioPresets.speech, // 여기 에러 수정됨
+            audioPreset: AudioPresets.speech,
             dtx: true,
           },
           adaptiveStream: true,
         }}
-        // [수정 1] 상대방이 나가면 바로 메인으로 이동
-        onParticipantDisconnected={() => {
-            alert("상대방이 통화를 종료했습니다.");
-            router.push("/");
-        }}
-        // [수정 2] 내가 연결 끊어도 메인으로 이동
+        // 연결 종료 시 처리
         onDisconnected={() => {
-            router.push("/");
+            alert("통화가 종료되었습니다.");
+            // 방문자는 닫기, 주인은 메인으로
+            if (isVisitor && window.opener) { 
+                window.close();
+            } else {
+                router.push("/");
+            }
         }}
         className="flex flex-col items-center justify-between w-full h-full max-w-md p-6"
       >
         <RoomAudioRenderer volume={1.0} />
-        <ConnectionStatusDisplay />
+        
+        {/* 역할에 따라 다른 UI 표시 */}
+        {isVisitor ? <VisitorUI /> : <OwnerUI />}
 
         <div className="w-full pb-10 space-y-6">
            <div className="flex justify-center">
@@ -73,6 +87,7 @@ export default function OwnerCallPage({ params }: { params: Promise<{ roomId: st
                 controls={{ microphone: true, camera: false, screenShare: false, chat: false }} 
              />
            </div>
+           
            <Button 
              variant="destructive" 
              className="w-full h-14 rounded-full text-lg font-bold bg-red-600 hover:bg-red-700"
@@ -87,8 +102,12 @@ export default function OwnerCallPage({ params }: { params: Promise<{ roomId: st
   );
 }
 
-function ConnectionStatusDisplay() {
+// --- [UI 컴포넌트 분리] ---
+
+// 1. 주인용 UI (방문자를 기다리는 화면)
+function OwnerUI() {
   const participants = useParticipants();
+  // 나(owner)를 제외한 다른 사람이 있는지 확인
   const isVisitorConnected = participants.length > 1;
 
   return (
@@ -101,8 +120,23 @@ function ConnectionStatusDisplay() {
           {isVisitorConnected ? "방문자와 통화 중" : "방문자 대기 중..."}
         </h2>
         <p className={isVisitorConnected ? "text-green-400" : "text-slate-500"}>
-          {isVisitorConnected ? "상대방이 접속했습니다" : "상대방 접속을 기다리는 중"}
+          {isVisitorConnected ? "오디오 연결됨" : "상대방 접속을 기다리는 중"}
         </p>
+      </div>
+    </div>
+  );
+}
+
+// 2. 방문자용 UI (통화 연결된 화면)
+function VisitorUI() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+      <div className="w-40 h-40 bg-slate-900 rounded-full flex items-center justify-center border-4 border-green-500 animate-pulse">
+        <Volume2 className="h-20 w-20 text-green-400" />
+      </div>
+      <div className="text-center">
+         <h2 className="text-3xl font-bold text-green-400">연결되었습니다</h2>
+         <p className="text-slate-400 mt-2 text-lg">말씀하시면 주인에게 들립니다</p>
       </div>
     </div>
   );
